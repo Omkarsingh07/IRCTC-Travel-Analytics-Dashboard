@@ -1,0 +1,38 @@
+# ==========================
+# Python
+# ==========================
+backend/venv/
+**/__pycache__/
+*.pyc
+
+# ==========================
+# Personal Files
+# ==========================
+backend/token.json
+backend/credentials.json
+backend/tickets.json
+
+backend/booking_sample.html
+backend/booking_sample.json
+
+backend/cancel_sample.html
+backend/cancel_sample.json
+
+# ==========================
+# Node
+# ==========================
+frontend/node_modules/
+
+# Root node_modules (agar ho)
+node_modules/
+
+# ==========================
+# macOS
+# ==========================
+.DS_Store
+
+# ==========================
+# VS Code
+# ==========================
+.vscode/
+.idea/
