@@ -8,15 +8,16 @@ Sync modes:
                   Used when no historyId is stored or historyId has expired (>7 days).
 
     INCREMENTAL - fetches ONLY messages added since the last sync via get_history().
-                  Zero API calls if no new emails arrived. Nearly instant.
+                  First inspects lightweight headers (From, Subject) to filter out
+                  non-IRCTC emails BEFORE fetching full bodies or running parsers.
 
 Flow:
     1. Check sync_metadata for the last gmail_history_id
     2. If found and valid  -> INCREMENTAL mode via get_history()
     3. If missing/expired  -> FULL mode via search_emails()
-    4. Filter new message IDs against booking and cancellation queries
-    5. Run BookingSyncer on booking stubs
-    6. Run CancellationSyncer on cancellation stubs
+    4. Filter new message IDs against booking and cancellation criteria via metadata
+    5. Run BookingSyncer on verified booking stubs only
+    6. Run CancellationSyncer on verified cancellation stubs only
     7. Store the latest historyId for next run
     8. Return a SyncReport with all stats
 """
@@ -28,6 +29,10 @@ from dataclasses import dataclass, field
 from gmail import (
     search_emails,
     get_history,
+    get_email_metadata,
+    extract_headers_dict,
+    is_booking_email,
+    is_cancellation_email,
     BOOKING_QUERY,
     CANCELLATION_QUERY,
 )
@@ -100,6 +105,7 @@ class SyncEngine:
     def _run_incremental(self, history_id: str) -> SyncReport:
         """
         Fetch only messages added since history_id via Gmail History API.
+        Pre-filters messages using lightweight header metadata before calling syncers.
         Falls back to full sync if historyId has expired.
         """
         print(f"\n{'='*60}")
@@ -109,25 +115,51 @@ class SyncEngine:
         new_message_ids = get_history(self.service, history_id)
 
         if new_message_ids is None:
-            # historyId expired (>7 days) - fall back gracefully
             print("Warning: historyId expired - falling back to FULL sync")
             return self._run_full()
 
+        total_received = len(new_message_ids)
+
         if not new_message_ids:
-            # No new messages at all - skip both syncers entirely
-            print("\nBooking Sync\n   0 booking emails found\n   0 new booking\n   0 skipped\n   0 failed")
-            print("\nCancellation Sync\n   0 cancellation emails found\n   0 new cancellation\n   0 skipped\n   0 failed")
+            print("\nIncremental Sync")
+            print("   0 Gmail messages received")
+            print("   0 IRCTC Booking emails")
+            print("   0 IRCTC Cancellation emails")
+            print("   0 non-IRCTC emails skipped")
             return SyncReport(
                 mode="incremental",
                 bookings      = {"found": 0, "new": 0, "skipped": 0, "failed": 0},
                 cancellations = {"found": 0, "new": 0, "skipped": 0, "failed": 0},
             )
 
-        # Convert list of IDs to stubs so syncers have uniform input format
-        all_stubs = [{"id": mid} for mid in new_message_ids]
+        booking_stubs      = []
+        cancellation_stubs = []
+        non_irctc_skipped  = 0
 
-        booking_stats      = BookingSyncer(self.service, self.conn).run(all_stubs)
-        cancellation_stats = CancellationSyncer(self.service, self.conn).run(all_stubs)
+        # Step 1: Lightweight Header Filtering (From, Subject)
+        for mid in new_message_ids:
+            try:
+                meta = get_email_metadata(self.service, mid)
+                headers = extract_headers_dict(meta)
+
+                if is_booking_email(headers):
+                    booking_stubs.append({"id": mid})
+                elif is_cancellation_email(headers):
+                    cancellation_stubs.append({"id": mid})
+                else:
+                    non_irctc_skipped += 1
+            except Exception:
+                non_irctc_skipped += 1
+
+        print(f"\nIncremental Sync")
+        print(f"   {total_received} Gmail messages received")
+        print(f"   {len(booking_stubs)} IRCTC Booking emails")
+        print(f"   {len(cancellation_stubs)} IRCTC Cancellation emails")
+        print(f"   {non_irctc_skipped} non-IRCTC emails skipped")
+
+        # Step 2: Pass only verified stubs to syncers
+        booking_stats      = BookingSyncer(self.service, self.conn).run(booking_stubs)
+        cancellation_stats = CancellationSyncer(self.service, self.conn).run(cancellation_stubs)
 
         return SyncReport(
             mode          = "incremental",
@@ -165,12 +197,7 @@ class SyncEngine:
 
     def _store_current_history_id(self) -> None:
         """
-        Retrieve and store the current Gmail historyId by making a lightweight
-        history.list call with a very high startHistoryId (effectively asking
-        for the current cursor position).
-
-        Gmail's users.getProfile endpoint returns the current historyId directly
-        and is the cleanest approach.
+        Retrieve and store current Gmail historyId via users.getProfile endpoint.
         """
         try:
             profile = self.service.users().getProfile(userId="me").execute()
@@ -179,5 +206,4 @@ class SyncEngine:
                 save_history_id(self.conn, history_id)
                 print(f"\nhistoryId {history_id} stored for next incremental sync")
         except Exception as e:
-            # Non-fatal - next run will just do a full sync again
             print(f"\nWarning: Could not store historyId: {e}")

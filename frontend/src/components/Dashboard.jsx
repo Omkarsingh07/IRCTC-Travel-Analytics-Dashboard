@@ -1,89 +1,90 @@
-import SummaryCard from "./SummaryCard";
+import { useApp } from "../context/AppContext";
+import Navbar from "./layout/Navbar";
+import Sidebar from "./layout/Sidebar";
+import MobileNav from "./layout/MobileNav";
+import OverviewView from "./views/OverviewView";
+import BookingsView from "./views/BookingsView";
+import CancellationsView from "./views/CancellationsView";
+import RefundsView from "./views/RefundsView";
+import AnalyticsView from "./views/AnalyticsView";
+import SyncStatusView from "./views/SyncStatusView";
+import SettingsView from "./views/SettingsView";
+import BookingDetailModal from "./modals/BookingDetailModal";
+import DatabaseStatsModal from "./modals/DatabaseStatsModal";
+import Toast from "./ui/Toast";
+import { Train } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
-import {
-  Train,
-  Ban,
-  CheckCircle,
-  Wallet,
-  IndianRupee,
-  Landmark,
-} from "lucide-react";
+export function Dashboard() {
+  const { activeTab, loading } = useApp();
 
-function Dashboard({ summary }) {
-  return (
-    <div className="min-h-screen bg-[#f8fafc]">
-
-      {/* Header */}
-      <div className="max-w-7xl mx-auto px-8 pt-12">
-
-        <h1 className="text-5xl font-bold text-gray-900">
-          IRCTC Travel Dashboard
-        </h1>
-
-        <p className="text-gray-500 mt-3 text-lg">
-          View your railway travel insights in one place.
-        </p>
-
-      </div>
-
-      {/* Cards */}
-
-      <div className="max-w-7xl mx-auto px-8 py-12">
-
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-
-          <SummaryCard
-            title="Total Bookings"
-            value={summary.total_bookings}
-            icon={<Train size={28} />}
-            color="bg-blue-500"
-          />
-
-          <SummaryCard
-            title="Cancelled Tickets"
-            value={summary.cancelled_tickets}
-            icon={<Ban size={28} />}
-            color="bg-red-500"
-          />
-
-          <SummaryCard
-            title="Completed Trips"
-            value={summary.completed_trips}
-            icon={<CheckCircle size={28} />}
-            color="bg-green-500"
-          />
-
-          <SummaryCard
-            title="Total Ticket Cost"
-            value={`₹${Math.round(
-              summary.total_ticket_cost
-            ).toLocaleString("en-IN")}`}
-            icon={<IndianRupee size={28} />}
-            color="bg-purple-500"
-          />
-
-          <SummaryCard
-            title="Total Refund"
-            value={`₹${Math.round(
-              summary.total_refund
-            ).toLocaleString("en-IN")}`}
-            icon={<Wallet size={28} />}
-            color="bg-orange-500"
-          />
-
-          <SummaryCard
-            title="Net Amount Spent"
-            value={`₹${Math.round(
-              summary.net_amount_spent
-            ).toLocaleString("en-IN")}`}
-            icon={<Landmark size={28} />}
-            color="bg-emerald-600"
-          />
-
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center space-y-4">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-2xl">
+          <Train className="w-6 h-6 text-white animate-pulse" />
         </div>
+        <div className="text-center space-y-1">
+          <h2 className="text-xl font-bold text-white">IRCTC Travel Analytics</h2>
+          <p className="text-xs text-slate-400">Loading database insights and synchronization pipeline...</p>
+        </div>
+      </div>
+    );
+  }
 
+  const renderCurrentView = () => {
+    switch (activeTab) {
+      case "dashboard":
+        return <OverviewView />;
+      case "bookings":
+        return <BookingsView />;
+      case "cancellations":
+        return <CancellationsView />;
+      case "refunds":
+        return <RefundsView />;
+      case "analytics":
+        return <AnalyticsView />;
+      case "sync":
+        return <SyncStatusView />;
+      case "settings":
+        return <SettingsView />;
+      default:
+        return <OverviewView />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 flex flex-col font-sans">
+      {/* Top Navbar */}
+      <Navbar />
+
+      <div className="flex-1 flex w-full max-w-[1600px] mx-auto">
+        {/* Left Sidebar */}
+        <Sidebar />
+
+        {/* Main Dashboard Content */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 lg:pb-12 overflow-y-auto">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.25 }}
+            >
+              {renderCurrentView()}
+            </motion.div>
+          </AnimatePresence>
+        </main>
       </div>
 
+      {/* Mobile Bottom Navigation */}
+      <MobileNav />
+
+      {/* Modals & Toasts */}
+      <BookingDetailModal />
+      <DatabaseStatsModal />
+      <Toast />
     </div>
   );
 }

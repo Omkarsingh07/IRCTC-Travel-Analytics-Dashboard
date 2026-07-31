@@ -3,19 +3,23 @@ sync/cancellation_sync.py
 
 CancellationSyncer: processes Gmail cancellation emails incrementally.
 
-For each new cancellation email:
-  1. Parse PNR and refund amount
-  2. Insert refund record
-  3. Update corresponding booking status to 'CANCELLED'
-
-Two deduplication guards:
+Algorithm - two deduplication guards + header validation:
     Guard 1 (email_id set): skip if email already processed
     Guard 2 (pnr set):      skip if this PNR already has a refund row
+
+Safety Layer:
+    Validates that the email is an authentic IRCTC cancellation email before parsing.
+    Returns gracefully if validation fails instead of raising parser exceptions.
 """
 
 import sqlite3
 
-from gmail import get_email
+from gmail import (
+    get_email,
+    extract_headers_dict,
+    is_irctc_email,
+    is_cancellation_email,
+)
 from parsers.html_parser import decode_email, get_soup
 from parsers.cancellation_parser import parse_cancellation
 from database.models import (
@@ -60,7 +64,7 @@ class CancellationSyncer:
         failed    = 0
 
         print(f"\nCancellation Sync")
-        print(f"   {found} cancellation emails found")
+        print(f"   {found} cancellation emails")
 
         for stub in message_stubs:
             email_id = stub["id"]
@@ -71,11 +75,25 @@ class CancellationSyncer:
                 continue
 
             try:
-                raw  = get_email(self.service, email_id)
-                html = decode_email(raw)
+                raw = get_email(self.service, email_id)
+                headers = extract_headers_dict(raw)
 
+                # Safety Layer: verify sender and subject before parsing HTML
+                if not is_irctc_email(headers):
+                    print(f"   SKIP - Non-IRCTC email {email_id} skipped")
+                    skipped += 1
+                    continue
+
+                if not is_cancellation_email(headers):
+                    print(f"   SKIP - Non-cancellation IRCTC email {email_id} skipped")
+                    skipped += 1
+                    continue
+
+                html = decode_email(raw)
                 if not html:
-                    raise ValueError("No HTML body found in cancellation email")
+                    print(f"   SKIP - Cancellation email {email_id} has no HTML body")
+                    skipped += 1
+                    continue
 
                 soup          = get_soup(html)
                 data          = parse_cancellation(soup)
@@ -83,7 +101,9 @@ class CancellationSyncer:
                 refund_amount = data.get("refund_amount", 0.0)
 
                 if not pnr:
-                    raise ValueError("PNR empty in cancellation email")
+                    print(f"   FAIL - IRCTC Cancellation PNR extraction failed for {email_id}")
+                    failed += 1
+                    continue
 
                 # Guard 2: PNR already has a refund row
                 if pnr in known_pnrs:
@@ -115,7 +135,7 @@ class CancellationSyncer:
             self.conn, log_id, found, new_count, skipped, failed
         )
 
-        print(f"   {new_count} new cancellation")
+        print(f"   {new_count} new")
         print(f"   {skipped} skipped")
         print(f"   {failed} failed")
 

@@ -1,89 +1,102 @@
 # ==============================================================================
-# Python & Virtual Environments
+# IRCTC Travel Analytics — Production .gitignore
 # ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Environment & Secrets (Security Critical)
+# ------------------------------------------------------------------------------
+# Gmail OAuth2 credentials and access tokens
+credentials.json
+token.json
+token.pickle
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local environment configuration files
+.env
+.env.*
+!.env.example
+
+# ------------------------------------------------------------------------------
+# 2. Database & Data Artifacts
+# ------------------------------------------------------------------------------
+# SQLite databases, write-ahead logs, and shared memory files
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Personal travel data, export JSON, and sample HTML email dumps
+tickets.json
+*_sample.html
+*_sample.json
+
+# ------------------------------------------------------------------------------
+# 3. Python & Virtual Environments
+# ------------------------------------------------------------------------------
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+
+# Python test, linting, and coverage caches
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
 
-# Virtual Environments
+# Virtual environments
 venv/
+.venv/
 env/
 ENV/
-backend/venv/
 
-# ==============================================================================
-# Node.js & Frontend Build Artifacts
-# ==============================================================================
+# ------------------------------------------------------------------------------
+# 4. Node.js & Frontend Build Artifacts
+# ------------------------------------------------------------------------------
+# Package dependencies
 node_modules/
-frontend/node_modules/
+
+# Production build outputs & Vite build cache
 dist/
 dist-ssr/
-frontend/dist/
-frontend/dist-ssr/
 .vite/
-frontend/.vite/
+.output/
 .eslintcache
 
-# Logs
+# Local environment overrides
+*.local
+
+# Debug and execution logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# ==============================================================================
-# Database & Storage Files
-# ==============================================================================
-*.db
-*.db-wal
-*.db-shm
-*.sqlite
-*.sqlite3
-backend/irctc.db
-backend/irctc.db-wal
-backend/irctc.db-shm
-
-# ==============================================================================
-# Secrets, OAuth Credentials & Environment Files
-# ==============================================================================
-credentials.json
-token.json
-backend/credentials.json
-backend/token.json
-.env
-.env.*
-!.env.example
-
-# ==============================================================================
-# Personal Data & Raw Email Samples
-# ==============================================================================
-tickets.json
-backend/tickets.json
-booking_sample.html
-booking_sample.json
-cancel_sample.html
-cancel_sample.json
-backend/booking_sample.html
-backend/booking_sample.json
-backend/cancel_sample.html
-backend/cancel_sample.json
-
-# ==============================================================================
-# Operating System & IDE Files
-# ==============================================================================
+# ------------------------------------------------------------------------------
+# 5. OS & IDE Metadata
+# ------------------------------------------------------------------------------
+# macOS system files
 .DS_Store
-.DS_Store?
 ._*
+
+# Windows system files
 Thumbs.db
 ehthumbs.db
 
 # Editors & IDEs
-.vscode/
+.vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
 .idea/
 *.swp
 *.swo
+*.tmp
+*.bak

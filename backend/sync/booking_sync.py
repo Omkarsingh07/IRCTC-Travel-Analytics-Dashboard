@@ -3,7 +3,7 @@ sync/booking_sync.py
 
 BookingSyncer: processes Gmail booking confirmation emails incrementally.
 
-Algorithm - three deduplication guards:
+Algorithm - three deduplication guards + header validation:
 
     Guard 1 (email_id set, O(1)):
         If this Gmail message ID is already in bookings.email_id -> skip.
@@ -12,18 +12,23 @@ Algorithm - three deduplication guards:
     Guard 2 (pnr set, O(1)):
         If this PNR is already in bookings -> email_id backfill + skip.
         Fixes the NULL email_id problem for tickets.json-migrated records.
-        After backfill, this booking will be caught by Guard 1 on all future syncs.
 
     Guard 3 (IntegrityError catch):
         Database UNIQUE constraints on pnr and email_id are the final safety net.
-        Even if Guards 1 & 2 somehow miss, the DB will reject the duplicate INSERT.
 
-Only new emails (those that pass all three guards) trigger a get_email() API call.
+Safety Layer:
+    Validates that the email is an authentic IRCTC booking email before parsing.
+    Returns gracefully if validation fails instead of raising parser exceptions.
 """
 
 import sqlite3
 
-from gmail import get_email, BOOKING_QUERY, search_emails
+from gmail import (
+    get_email,
+    extract_headers_dict,
+    is_irctc_email,
+    is_booking_email,
+)
 from parsers.html_parser import decode_email, get_soup
 from parsers.booking_parser import (
     parse_ticket_details,
@@ -64,7 +69,6 @@ class BookingSyncer:
         found   = len(message_stubs)
         log_id  = start_sync_log(self.conn, "bookings")
 
-        # Load lookup sets once - O(1) per email in the loop
         known_email_ids = get_known_booking_email_ids(self.conn)
         known_pnrs      = get_known_booking_pnrs(self.conn)
 
@@ -73,9 +77,8 @@ class BookingSyncer:
         failed      = 0
         backfilled  = 0
 
-        print(f"\n{'='*60}")
-        print(f"Booking Sync")
-        print(f"   {found} booking emails found")
+        print(f"\nBooking Sync")
+        print(f"   {found} booking emails")
 
         for stub in message_stubs:
             email_id = stub["id"]
@@ -85,34 +88,46 @@ class BookingSyncer:
                 skipped += 1
                 continue
 
-            # Unknown email_id - fetch full body from Gmail
             try:
-                raw  = get_email(self.service, email_id)
-                html = decode_email(raw)
+                raw = get_email(self.service, email_id)
+                headers = extract_headers_dict(raw)
 
+                # Safety Layer: verify sender and subject before parsing HTML
+                if not is_irctc_email(headers):
+                    print(f"   SKIP - Non-IRCTC email {email_id} skipped")
+                    skipped += 1
+                    continue
+
+                if not is_booking_email(headers):
+                    print(f"   SKIP - Non-booking IRCTC email {email_id} skipped")
+                    skipped += 1
+                    continue
+
+                html = decode_email(raw)
                 if not html:
-                    raise ValueError("No HTML body found (multipart with no text/html part)")
+                    print(f"   SKIP - Email {email_id} has no HTML body")
+                    skipped += 1
+                    continue
 
                 soup   = get_soup(html)
                 ticket = parse_ticket_details(soup)
                 pnr    = ticket.get("pnr", "").strip()
 
                 if not pnr:
-                    raise ValueError("PNR is empty - email HTML structure may have changed")
+                    print(f"   FAIL - IRCTC Booking PNR extraction failed for {email_id}")
+                    failed += 1
+                    continue
 
                 # Guard 2: PNR already in DB (email_id was NULL)
                 if pnr in known_pnrs:
-                    # Backfill the real email_id into the existing row so
-                    # this email is caught by Guard 1 on all future syncs.
                     backfill_email_id(self.conn, pnr, email_id)
                     self.conn.commit()
-                    known_email_ids.add(email_id)   # update in-memory set
+                    known_email_ids.add(email_id)
                     print(f"   BACKFILL - PNR {pnr} (email_id written)")
                     backfilled += 1
                     skipped    += 1
                     continue
 
-                # New booking - parse remaining fields
                 passengers = parse_passengers(soup)
                 fare       = parse_fare(soup)
 
@@ -141,8 +156,8 @@ class BookingSyncer:
             self.conn, log_id, found, new_count, skipped, failed
         )
 
-        print(f"   {new_count} new booking")
-        print(f"   {skipped} skipped  ({backfilled} email_id backfilled)")
+        print(f"   {new_count} new")
+        print(f"   {skipped} skipped")
         print(f"   {failed} failed")
 
         return {
