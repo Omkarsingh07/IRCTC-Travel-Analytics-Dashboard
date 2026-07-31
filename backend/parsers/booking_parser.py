@@ -187,7 +187,7 @@ def parse_fare(soup: BeautifulSoup) -> dict:
         fare["total_fare"] = amounts[-1]
 
     if fare["total_fare"] == 0:
-        print("⚠️  Fare not found — raw fare table text:")
+        print("Warning: Fare not found - raw fare table text:")
         print(text)
         print("-" * 80)
 

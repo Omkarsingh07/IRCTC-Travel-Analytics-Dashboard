@@ -21,17 +21,17 @@ from analytics.dashboard import get_summary
 
 def main():
     print("=" * 60)
-    print("🚆 IRCTC Travel Analytics")
+    print("IRCTC Travel Analytics")
     print("=" * 60)
 
     # 1. Initialise database (creates tables if not present)
     init_db()
 
     # 2. Authenticate Gmail
-    print("\n🔐 Connecting to Gmail...")
+    print("\nConnecting to Gmail...")
     creds   = authenticate()
     service = get_gmail_service(creds)
-    print("✅ Connected Successfully!")
+    print("Connected Successfully!")
 
     # 3. Sync — full or incremental decided automatically by SyncEngine
     conn = get_db()
@@ -49,21 +49,21 @@ def main():
 
     # 5. Print dashboard
     print("\n" + "=" * 60)
-    print("📊 IRCTC TRAVEL SUMMARY")
+    print("IRCTC TRAVEL SUMMARY")
     print("=" * 60)
 
-    print(f"🚆 Total Bookings      : {summary['total_bookings']}")
-    print(f"❌ Cancelled Tickets   : {summary['cancelled_tickets']}")
-    print(f"✅ Completed Trips     : {summary['completed_trips']}")
+    print(f"Total Bookings      : {summary['total_bookings']}")
+    print(f"Cancelled Tickets   : {summary['cancelled_tickets']}")
+    print(f"Completed Trips     : {summary['completed_trips']}")
 
     print("-" * 60)
 
-    print(f"💰 Total Ticket Cost   : ₹{summary['total_ticket_cost']:,.2f}")
-    print(f"💸 Total Refund        : ₹{summary['total_refund']:,.2f}")
-    print(f"🧾 Net Amount Spent    : ₹{summary['net_amount_spent']:,.2f}")
+    print(f"Total Ticket Cost   : ₹{summary['total_ticket_cost']:,.2f}")
+    print(f"Total Refund        : ₹{summary['total_refund']:,.2f}")
+    print(f"Net Amount Spent    : ₹{summary['net_amount_spent']:,.2f}")
 
     print("=" * 60)
-    print("✅ Analysis Completed Successfully!")
+    print("Analysis Completed Successfully!")
     print("=" * 60)
 
 

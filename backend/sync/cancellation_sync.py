@@ -59,13 +59,13 @@ class CancellationSyncer:
         skipped   = 0
         failed    = 0
 
-        print(f"\n📩 Cancellation Sync")
+        print(f"\nCancellation Sync")
         print(f"   {found} cancellation emails found")
 
         for stub in message_stubs:
             email_id = stub["id"]
 
-            # ── Guard 1: email already processed ─────────────────────
+            # Guard 1: email already processed
             if email_id in known_email_ids:
                 skipped += 1
                 continue
@@ -85,12 +85,12 @@ class CancellationSyncer:
                 if not pnr:
                     raise ValueError("PNR empty in cancellation email")
 
-                # ── Guard 2: PNR already has a refund row ─────────────
+                # Guard 2: PNR already has a refund row
                 if pnr in known_pnrs:
                     skipped += 1
                     continue
 
-                # ── Insert refund + update booking status atomically ──
+                # Insert refund + update booking status atomically
                 insert_refund(self.conn, pnr, refund_amount, email_id)
                 update_booking_status(self.conn, pnr, "CANCELLED")
                 self.conn.commit()
@@ -98,17 +98,17 @@ class CancellationSyncer:
                 known_email_ids.add(email_id)
                 known_pnrs.add(pnr)
 
-                print(f"   ✅ NEW — PNR {pnr} | Refund ₹{refund_amount:,.2f}")
+                print(f"   NEW - PNR {pnr} | Refund ₹{refund_amount:,.2f}")
                 new_count += 1
 
             except sqlite3.IntegrityError as e:
                 self.conn.rollback()
-                print(f"   ⚠️  SKIP — IntegrityError {email_id}: {e}")
+                print(f"   SKIP - IntegrityError {email_id}: {e}")
                 skipped += 1
 
             except Exception as e:
                 self.conn.rollback()
-                print(f"   ❌ FAIL — {email_id}: {e}")
+                print(f"   FAIL - {email_id}: {e}")
                 failed += 1
 
         finish_sync_log(

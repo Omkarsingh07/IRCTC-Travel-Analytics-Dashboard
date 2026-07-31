@@ -77,7 +77,7 @@ def _run_sync() -> dict:
 def home():
     return {
         "status":  "success",
-        "message": "🚆 IRCTC Travel Analytics API v3.0 — Incremental Sync Engine",
+        "message": "IRCTC Travel Analytics API v3.0 - Incremental Sync Engine",
     }
 
 

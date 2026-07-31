@@ -1,10 +1,10 @@
-# 🚆 IRCTC Travel Analytics Dashboard
+# IRCTC Travel Analytics Dashboard
 
 A Full Stack Travel Analytics Dashboard that automatically reads IRCTC booking and cancellation emails from Gmail, extracts journey details, and provides insightful travel analytics through an interactive React dashboard.
 
 ---
 
-## ✨ Features
+## Features
 
 - Gmail OAuth Authentication
 - Automatic IRCTC Email Parsing
@@ -16,7 +16,7 @@ A Full Stack Travel Analytics Dashboard that automatically reads IRCTC booking a
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 ### Backend
 
@@ -35,7 +35,7 @@ A Full Stack Travel Analytics Dashboard that automatically reads IRCTC booking a
 
 ---
 
-## 📊 Dashboard
+## Dashboard
 
 Shows:
 
@@ -48,7 +48,7 @@ Shows:
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 backend/
@@ -57,7 +57,7 @@ frontend/
 
 ---
 
-## ⚙️ Installation
+## Installation
 
 ### Backend
 
@@ -85,7 +85,7 @@ npm run dev
 
 ---
 
-## 🔒 Privacy
+## Privacy
 
 Personal files such as:
 
@@ -97,6 +97,6 @@ are intentionally excluded from this repository.
 
 ---
 
-## 👨‍💻 Author
+## Author
 
 Omkar Singh

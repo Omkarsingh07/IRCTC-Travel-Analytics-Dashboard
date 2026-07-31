@@ -3,14 +3,14 @@ sync/booking_sync.py
 
 BookingSyncer: processes Gmail booking confirmation emails incrementally.
 
-Algorithm — three deduplication guards:
+Algorithm - three deduplication guards:
 
     Guard 1 (email_id set, O(1)):
-        If this Gmail message ID is already in bookings.email_id → skip.
+        If this Gmail message ID is already in bookings.email_id -> skip.
         No API call made. Fastest possible path.
 
     Guard 2 (pnr set, O(1)):
-        If this PNR is already in bookings → email_id backfill + skip.
+        If this PNR is already in bookings -> email_id backfill + skip.
         Fixes the NULL email_id problem for tickets.json-migrated records.
         After backfill, this booking will be caught by Guard 1 on all future syncs.
 
@@ -64,7 +64,7 @@ class BookingSyncer:
         found   = len(message_stubs)
         log_id  = start_sync_log(self.conn, "bookings")
 
-        # Load lookup sets once — O(1) per email in the loop
+        # Load lookup sets once - O(1) per email in the loop
         known_email_ids = get_known_booking_email_ids(self.conn)
         known_pnrs      = get_known_booking_pnrs(self.conn)
 
@@ -74,18 +74,18 @@ class BookingSyncer:
         backfilled  = 0
 
         print(f"\n{'='*60}")
-        print(f"📩 Booking Sync")
+        print(f"Booking Sync")
         print(f"   {found} booking emails found")
 
         for stub in message_stubs:
             email_id = stub["id"]
 
-            # ── Guard 1: email_id already in DB ──────────────────────
+            # Guard 1: email_id already in DB
             if email_id in known_email_ids:
                 skipped += 1
                 continue
 
-            # ── Unknown email_id — fetch full body from Gmail ─────────
+            # Unknown email_id - fetch full body from Gmail
             try:
                 raw  = get_email(self.service, email_id)
                 html = decode_email(raw)
@@ -98,25 +98,25 @@ class BookingSyncer:
                 pnr    = ticket.get("pnr", "").strip()
 
                 if not pnr:
-                    raise ValueError("PNR is empty — email HTML structure may have changed")
+                    raise ValueError("PNR is empty - email HTML structure may have changed")
 
-                # ── Guard 2: PNR already in DB (email_id was NULL) ────
+                # Guard 2: PNR already in DB (email_id was NULL)
                 if pnr in known_pnrs:
                     # Backfill the real email_id into the existing row so
                     # this email is caught by Guard 1 on all future syncs.
                     backfill_email_id(self.conn, pnr, email_id)
                     self.conn.commit()
                     known_email_ids.add(email_id)   # update in-memory set
-                    print(f"   🔗 BACKFILL — PNR {pnr} (email_id written)")
+                    print(f"   BACKFILL - PNR {pnr} (email_id written)")
                     backfilled += 1
                     skipped    += 1
                     continue
 
-                # ── New booking — parse remaining fields ──────────────
+                # New booking - parse remaining fields
                 passengers = parse_passengers(soup)
                 fare       = parse_fare(soup)
 
-                # ── Guard 3: DB constraint (final safety net) ─────────
+                # Guard 3: DB constraint (final safety net)
                 booking_id = insert_booking(self.conn, ticket, fare, email_id)
                 insert_passengers(self.conn, booking_id, passengers)
                 self.conn.commit()
@@ -124,17 +124,17 @@ class BookingSyncer:
                 known_email_ids.add(email_id)
                 known_pnrs.add(pnr)
 
-                print(f"   ✅ NEW — PNR {pnr}")
+                print(f"   NEW - PNR {pnr}")
                 new_count += 1
 
             except sqlite3.IntegrityError as e:
                 self.conn.rollback()
-                print(f"   ⚠️  SKIP — IntegrityError {email_id}: {e}")
+                print(f"   SKIP - IntegrityError {email_id}: {e}")
                 skipped += 1
 
             except Exception as e:
                 self.conn.rollback()
-                print(f"   ❌ FAIL — {email_id}: {e}")
+                print(f"   FAIL - {email_id}: {e}")
                 failed += 1
 
         finish_sync_log(

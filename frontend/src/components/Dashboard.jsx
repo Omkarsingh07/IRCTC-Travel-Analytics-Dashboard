@@ -17,7 +17,7 @@ function Dashboard({ summary }) {
       <div className="max-w-7xl mx-auto px-8 pt-12">
 
         <h1 className="text-5xl font-bold text-gray-900">
-          🚆 IRCTC Travel Dashboard
+          IRCTC Travel Dashboard
         </h1>
 
         <p className="text-gray-500 mt-3 text-lg">

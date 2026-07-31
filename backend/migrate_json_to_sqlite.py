@@ -36,12 +36,12 @@ TICKETS_JSON = os.path.join(_BASE_DIR, "tickets.json")
 
 def migrate() -> None:
     print("=" * 60)
-    print("📦 IRCTC tickets.json → SQLite Migration")
+    print("IRCTC tickets.json -> SQLite Migration")
     print("=" * 60)
 
     # 1. Verify source file exists
     if not os.path.exists(TICKETS_JSON):
-        print(f"❌ tickets.json not found at: {TICKETS_JSON}")
+        print(f"Error: tickets.json not found at: {TICKETS_JSON}")
         print("   Nothing to migrate.")
         return
 
@@ -52,7 +52,7 @@ def migrate() -> None:
     with open(TICKETS_JSON, "r", encoding="utf-8") as f:
         records = json.load(f)
 
-    print(f"\n📄 Found {len(records)} records in tickets.json\n")
+    print(f"\nFound {len(records)} records in tickets.json\n")
 
     inserted = 0
     skipped  = 0
@@ -69,12 +69,12 @@ def migrate() -> None:
             pnr = ticket.get("pnr", "").strip()
 
             if not pnr:
-                print(f"  [{i:>3}] ⚠️  SKIP — PNR is empty")
+                print(f"  [{i:>3}] SKIP - PNR is empty")
                 skipped += 1
                 continue
 
             if pnr_exists(conn, pnr):
-                print(f"  [{i:>3}] ⏭️  SKIP — PNR {pnr} already in database")
+                print(f"  [{i:>3}] SKIP - PNR {pnr} already in database")
                 skipped += 1
                 continue
 
@@ -91,17 +91,17 @@ def migrate() -> None:
                 insert_passengers(conn, booking_id, passengers)
                 conn.commit()
 
-                print(f"  [{i:>3}] ✅ INSERT — PNR {pnr}")
+                print(f"  [{i:>3}] INSERT - PNR {pnr}")
                 inserted += 1
 
             except sqlite3.IntegrityError as e:
                 conn.rollback()
-                print(f"  [{i:>3}] ⚠️  SKIP — Integrity error for PNR {pnr}: {e}")
+                print(f"  [{i:>3}] SKIP - Integrity error for PNR {pnr}: {e}")
                 skipped += 1
 
             except Exception as e:
                 conn.rollback()
-                print(f"  [{i:>3}] ❌ FAIL  — PNR {pnr}: {e}")
+                print(f"  [{i:>3}] FAIL - PNR {pnr}: {e}")
                 failed += 1
 
     finally:
@@ -110,18 +110,18 @@ def migrate() -> None:
     # Summary
     print()
     print("=" * 60)
-    print("📊 Migration Complete")
+    print("Migration Complete")
     print("=" * 60)
-    print(f"  ✅ Inserted : {inserted}")
-    print(f"  ⏭️  Skipped  : {skipped}")
-    print(f"  ❌ Failed   : {failed}")
+    print(f"  Inserted : {inserted}")
+    print(f"  Skipped  : {skipped}")
+    print(f"  Failed   : {failed}")
     print("=" * 60)
 
     if failed == 0:
-        print("\n✅ Migration successful! You can now run the application.")
+        print("\nMigration successful! You can now run the application.")
         print("   tickets.json is no longer used but kept as a backup.")
     else:
-        print(f"\n⚠️  {failed} records failed. Review the output above.")
+        print(f"\nWarning: {failed} records failed. Review the output above.")
 
 
 if __name__ == "__main__":

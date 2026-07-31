@@ -44,6 +44,6 @@ def init_db() -> None:
     try:
         conn.executescript(CREATE_TABLES_SQL)
         conn.commit()
-        print(f"✅ Database ready: {DB_PATH}")
+        print(f"Database ready: {DB_PATH}")
     finally:
         conn.close()
