@@ -1,41 +1,20 @@
-from gmail import (
-    search_emails,
-    get_email,
-    CANCELLATION_QUERY
-)
+"""
+services/refund_service.py  — DEPRECATED
 
-from parsers.html_parser import (
-    decode_email,
-    get_soup
-)
+This module has been superseded by sync/cancellation_sync.py.
 
-from parsers.cancellation_parser import (
-    parse_cancellation
-)
+The sync logic now lives in:
+    sync/cancellation_sync.py → CancellationSyncer
+    sync/engine.py            → SyncEngine (orchestrator)
+
+This file is kept as a compatibility shim. Delete it once you have
+confirmed that nothing else imports from services.refund_service.
+"""
+from sync.cancellation_sync import CancellationSyncer  # noqa: F401
 
 
-def calculate_total_refund(service):
-
-    cancelled_emails = search_emails(
-        service,
-        CANCELLATION_QUERY
-    )
-
-    total_refund = 0.0
-
-    for email_info in cancelled_emails:
-
-        email = get_email(
-            service,
-            email_info["id"]
-        )
-
-        html = decode_email(email)
-
-        soup = get_soup(html)
-
-        data = parse_cancellation(soup)
-
-        total_refund += data["refund_amount"]
-
-    return len(cancelled_emails), round(total_refund, 2)
+def sync_refunds(service, conn):
+    """Deprecated. Use SyncEngine instead."""
+    from gmail import search_emails, CANCELLATION_QUERY
+    stubs = search_emails(service, CANCELLATION_QUERY)
+    return CancellationSyncer(service, conn).run(stubs)

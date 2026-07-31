@@ -1,74 +1,66 @@
-import os
+"""
+main.py
+
+CLI entry point for IRCTC Travel Analytics Dashboard.
+
+On every run:
+    1. Initialise database (idempotent)
+    2. Authenticate Gmail
+    3. Run SyncEngine (full or incremental automatically)
+    4. Read all analytics from SQLite
+    5. Print the dashboard summary
+"""
 
 from auth import authenticate
-from gmail import (
-    get_gmail_service,
-    search_emails,
-    BOOKING_QUERY
-)
+from gmail import get_gmail_service
 
-from services.booking_service import (
-    generate_tickets,
-    calculate_total_spent
-)
-
-from services.refund_service import (
-    calculate_total_refund
-)
+from database.connection import init_db, get_db
+from sync.engine import SyncEngine
+from analytics.dashboard import get_summary
 
 
 def main():
-
     print("=" * 60)
     print("🚆 IRCTC Travel Analytics")
     print("=" * 60)
 
-    # Gmail Authentication
+    # 1. Initialise database (creates tables if not present)
+    init_db()
+
+    # 2. Authenticate Gmail
     print("\n🔐 Connecting to Gmail...")
-
-    creds = authenticate()
+    creds   = authenticate()
     service = get_gmail_service(creds)
-
     print("✅ Connected Successfully!")
 
-    # Generate tickets.json if it doesn't exist
-    if not os.path.exists("tickets.json"):
+    # 3. Sync — full or incremental decided automatically by SyncEngine
+    conn = get_db()
+    try:
+        SyncEngine(service, conn).run()
+    finally:
+        conn.close()
 
-        print("\n📦 tickets.json not found.")
-        print("Generating ticket database from Gmail...\n")
+    # 4. Read analytics from SQLite
+    conn = get_db()
+    try:
+        summary = get_summary(conn)
+    finally:
+        conn.close()
 
-        generate_tickets(service)
-
-        print("\n✅ Ticket database generated successfully!")
-
-    # Booking Summary
-    booking_emails = search_emails(service, BOOKING_QUERY)
-    total_bookings = len(booking_emails)
-
-    # Ticket Cost
-    total_spent = calculate_total_spent()
-
-    # Refund Summary
-    cancelled_tickets, total_refund = calculate_total_refund(service)
-
-    # Final Calculations
-    completed_trips = total_bookings - cancelled_tickets
-    net_spent = total_spent - total_refund
-
-    # Dashboard
+    # 5. Print dashboard
     print("\n" + "=" * 60)
     print("📊 IRCTC TRAVEL SUMMARY")
     print("=" * 60)
 
-    print(f"🚆 Total Bookings      : {total_bookings}")
-    print(f"❌ Cancelled Tickets   : {cancelled_tickets}")
-    print(f"✅ Completed Trips     : {completed_trips}")
+    print(f"🚆 Total Bookings      : {summary['total_bookings']}")
+    print(f"❌ Cancelled Tickets   : {summary['cancelled_tickets']}")
+    print(f"✅ Completed Trips     : {summary['completed_trips']}")
 
     print("-" * 60)
 
-    print(f"💰 Total Ticket Cost   : ₹{total_spent:,.2f}")
-    print(f"💸 Total Refund        : ₹{total_refund:,.2f}")
-    print(f"🧾 Net Amount Spent    : ₹{net_spent:,.2f}")
+    print(f"💰 Total Ticket Cost   : ₹{summary['total_ticket_cost']:,.2f}")
+    print(f"💸 Total Refund        : ₹{summary['total_refund']:,.2f}")
+    print(f"🧾 Net Amount Spent    : ₹{summary['net_amount_spent']:,.2f}")
 
     print("=" * 60)
     print("✅ Analysis Completed Successfully!")
