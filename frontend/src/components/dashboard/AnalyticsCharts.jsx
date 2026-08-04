@@ -1,4 +1,5 @@
 import { useApp } from "../../context/AppContext";
+import { useTheme } from "../../context/ThemeContext";
 import { formatCurrency } from "../../utils/formatters";
 import {
   ResponsiveContainer,
@@ -28,6 +29,7 @@ const CLASS_COLORS = [
 
 export function AnalyticsCharts() {
   const { analytics } = useApp();
+  const { theme } = useTheme();
 
   if (!analytics) {
     return (
@@ -47,13 +49,13 @@ export function AnalyticsCharts() {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="glass-panel p-3 rounded-xl shadow-2xl border border-slate-700/80 text-xs">
-          <p className="font-bold text-slate-200 mb-1">{label}</p>
-          <p className="text-indigo-400 font-semibold">
+        <div className="glass-panel p-3 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700/80 text-xs">
+          <p className="font-bold text-slate-900 dark:text-slate-200 mb-1">{label}</p>
+          <p className="text-indigo-600 dark:text-indigo-400 font-semibold">
             Spent: {formatCurrency(payload[0].value, 2)}
           </p>
           {payload[1] && (
-            <p className="text-emerald-400 font-semibold">
+            <p className="text-emerald-600 dark:text-emerald-400 font-semibold">
               Trips: {payload[1].value}
             </p>
           )}
@@ -198,11 +200,12 @@ export function AnalyticsCharts() {
                 <Tooltip
                   formatter={(val, name) => [`${val} tickets`, name]}
                   contentStyle={{
-                    backgroundColor: "rgba(15, 23, 42, 0.9)",
-                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    backgroundColor: theme === "dark" ? "rgba(15, 23, 42, 0.9)" : "rgba(255, 255, 255, 0.95)",
+                    borderColor: theme === "dark" ? "rgba(255, 255, 255, 0.1)" : "rgba(226, 232, 240, 0.9)",
                     borderRadius: "12px",
-                    color: "#fff",
+                    color: theme === "dark" ? "#fff" : "#0f172a",
                     fontSize: "12px",
+                    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
                   }}
                 />
               </PieChart>

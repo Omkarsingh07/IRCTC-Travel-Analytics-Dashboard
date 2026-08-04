@@ -74,7 +74,7 @@ export function ActivityTimeline() {
             <div key={act.id} className="relative flex items-start justify-between group">
               {/* Timeline Dot */}
               <div
-                className={`absolute -left-6 top-0.5 w-5 h-5 rounded-full border ${act.color} flex items-center justify-center bg-slate-900 z-10`}
+                className={`absolute -left-6 top-0.5 w-5 h-5 rounded-full border ${act.color} flex items-center justify-center bg-white dark:bg-slate-900 z-10`}
               >
                 <Icon className="w-3 h-3" />
               </div>

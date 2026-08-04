@@ -1,12 +1,13 @@
 import { useState, useMemo } from "react";
 import { useApp } from "../../context/AppContext";
-import Badge from "../ui/Badge";
+import Badge, { BookingTypeBadge } from "../ui/Badge";
 import {
   formatCurrency,
   formatPNR,
   formatDate,
   extractYear,
   getJourneyTimestamp,
+  formatBookingType,
 } from "../../utils/formatters";
 import {
   Search,
@@ -21,6 +22,7 @@ import {
   ExternalLink,
   SearchX,
   RotateCcw,
+  Tag,
 } from "lucide-react";
 
 export function RecentTripsTable({ limit }) {
@@ -29,6 +31,7 @@ export function RecentTripsTable({ limit }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [yearFilter, setYearFilter] = useState("ALL");
+  const [bookingTypeFilter, setBookingTypeFilter] = useState("ALL");
   const [sortField, setSortField] = useState("journey_date");
   const [sortAsc, setSortAsc] = useState(false); // Default: Descending (Newest First)
   const [currentPage, setCurrentPage] = useState(1);
@@ -46,7 +49,24 @@ export function RecentTripsTable({ limit }) {
     return Array.from(yearsSet).sort((a, b) => Number(b) - Number(a));
   }, [allBookings]);
 
-  // 2. Combined Filtering + Default Journey Date Descending Sorting
+  // 2. Dynamic Booking Types Extraction from Dataset
+  const availableBookingTypes = useMemo(() => {
+    const typesSet = new Set();
+    allBookings.forEach((item) => {
+      const typeLabel = formatBookingType(item.quota);
+      if (typeLabel) typesSet.add(typeLabel);
+    });
+    const typesArray = Array.from(typesSet);
+    return typesArray.sort((a, b) => {
+      if (a === "General") return -1;
+      if (b === "General") return 1;
+      if (a === "Tatkal") return -1;
+      if (b === "Tatkal") return 1;
+      return a.localeCompare(b);
+    });
+  }, [allBookings]);
+
+  // 3. Combined Filtering + Default Journey Date Descending Sorting
   const filteredBookings = useMemo(() => {
     return allBookings
       .filter((item) => {
@@ -73,7 +93,12 @@ export function RecentTripsTable({ limit }) {
         const itemYear = extractYear(item.journey_date || item.booking_date);
         const matchesYear = yearFilter === "ALL" || itemYear === yearFilter;
 
-        return matchesSearch && matchesStatus && matchesYear;
+        // Booking Type filter
+        const itemType = formatBookingType(item.quota);
+        const matchesBookingType =
+          bookingTypeFilter === "ALL" || itemType === bookingTypeFilter;
+
+        return matchesSearch && matchesStatus && matchesYear && matchesBookingType;
       })
       .sort((a, b) => {
         if (sortField === "journey_date") {
@@ -92,9 +117,9 @@ export function RecentTripsTable({ limit }) {
         const valB = String(b[sortField] || "");
         return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
       });
-  }, [allBookings, searchTerm, statusFilter, yearFilter, sortField, sortAsc]);
+  }, [allBookings, searchTerm, statusFilter, yearFilter, bookingTypeFilter, sortField, sortAsc]);
 
-  // 3. Pagination
+  // 4. Pagination
   const totalPages = Math.max(1, Math.ceil(filteredBookings.length / pageSize));
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -115,6 +140,7 @@ export function RecentTripsTable({ limit }) {
     setSearchTerm("");
     setStatusFilter("ALL");
     setYearFilter("ALL");
+    setBookingTypeFilter("ALL");
     setSortField("journey_date");
     setSortAsc(false);
     setCurrentPage(1);
@@ -134,7 +160,7 @@ export function RecentTripsTable({ limit }) {
           </p>
         </div>
 
-        {/* Search, Year & Status Filters */}
+        {/* Search, Year, Status & Booking Type Filters */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Search Input */}
           <div className="relative flex-1 sm:w-56">
@@ -153,7 +179,7 @@ export function RecentTripsTable({ limit }) {
 
           {/* Dynamic Year Dropdown Filter */}
           <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80">
-            <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+            <Calendar className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Year:</span>
             <select
               value={yearFilter}
@@ -163,9 +189,9 @@ export function RecentTripsTable({ limit }) {
               }}
               className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer pr-1"
             >
-              <option value="ALL" className="dark:bg-slate-900">All Years</option>
+              <option value="ALL" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Years</option>
               {availableYears.map((yr) => (
-                <option key={yr} value={yr} className="dark:bg-slate-900">
+                <option key={yr} value={yr} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                   {yr}
                 </option>
               ))}
@@ -184,14 +210,35 @@ export function RecentTripsTable({ limit }) {
               }}
               className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer pr-1"
             >
-              <option value="ALL" className="dark:bg-slate-900">All Status</option>
-              <option value="ACTIVE" className="dark:bg-slate-900">Confirmed</option>
-              <option value="CANCELLED" className="dark:bg-slate-900">Cancelled</option>
+              <option value="ALL" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Status</option>
+              <option value="ACTIVE" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Confirmed</option>
+              <option value="CANCELLED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Cancelled</option>
+            </select>
+          </div>
+
+          {/* Dynamic Booking Type Dropdown Filter */}
+          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80">
+            <Tag className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Booking Type:</span>
+            <select
+              value={bookingTypeFilter}
+              onChange={(e) => {
+                setBookingTypeFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="bg-transparent text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none cursor-pointer pr-1"
+            >
+              <option value="ALL" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Types</option>
+              {availableBookingTypes.map((type) => (
+                <option key={type} value={type} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                  {type}
+                </option>
+              ))}
             </select>
           </div>
 
           {/* Reset Filters button */}
-          {(searchTerm || statusFilter !== "ALL" || yearFilter !== "ALL") && (
+          {(searchTerm || statusFilter !== "ALL" || yearFilter !== "ALL" || bookingTypeFilter !== "ALL") && (
             <button
               onClick={handleResetFilters}
               className="p-1.5 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs flex items-center gap-1 transition-colors cursor-pointer"
@@ -235,6 +282,7 @@ export function RecentTripsTable({ limit }) {
                 </div>
               </th>
 
+              <th className="py-3 px-4">Booking Type</th>
               <th className="py-3 px-4">Status</th>
 
               <th
@@ -290,6 +338,10 @@ export function RecentTripsTable({ limit }) {
                   </td>
 
                   <td className="py-3.5 px-4">
+                    <BookingTypeBadge quota={item.quota} />
+                  </td>
+
+                  <td className="py-3.5 px-4">
                     <Badge status={item.status} />
                   </td>
 
@@ -300,7 +352,7 @@ export function RecentTripsTable({ limit }) {
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="py-12 px-4 text-center">
+                <td colSpan={8} className="py-12 px-4 text-center">
                   <div className="flex flex-col items-center justify-center space-y-3">
                     <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
                       <SearchX className="w-6 h-6 text-slate-500" />
@@ -310,7 +362,7 @@ export function RecentTripsTable({ limit }) {
                         No bookings found
                       </h4>
                       <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm">
-                        Try changing your search keywords, status filter, or selected journey year.
+                        Try changing your search keywords, status filter, booking type filter, or selected journey year.
                       </p>
                     </div>
                     <button
@@ -359,3 +411,4 @@ export function RecentTripsTable({ limit }) {
 }
 
 export default RecentTripsTable;
+

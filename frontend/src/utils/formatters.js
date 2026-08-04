@@ -90,3 +90,42 @@ export const getStatusBadgeStyle = (status) => {
     dot: "bg-slate-500",
   };
 };
+
+export const formatBookingType = (quota) => {
+  if (!quota) return "General";
+  const q = String(quota).trim();
+  if (!q) return "General";
+  return q
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
+
+export const getBookingTypeBadgeStyle = (quota) => {
+  const label = formatBookingType(quota);
+  const q = (quota || "").toUpperCase().trim();
+
+  if (q === "GENERAL" || q === "") {
+    return {
+      label,
+      bg: "bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/20",
+      dot: "bg-blue-500",
+    };
+  }
+
+  if (q === "TATKAL" || q.includes("TATKAL")) {
+    return {
+      label,
+      bg: "bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/20",
+      dot: "bg-amber-500",
+    };
+  }
+
+  return {
+    label,
+    bg: "bg-slate-500/10 dark:bg-slate-500/20 text-slate-600 dark:text-slate-400 border-slate-500/20",
+    dot: "bg-slate-500",
+  };
+};
+

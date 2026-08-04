@@ -6,7 +6,6 @@ import {
   Sun,
   Moon,
   Database,
-  Search,
 } from "lucide-react";
 
 export function Navbar() {
@@ -35,15 +34,6 @@ export function Navbar() {
               Gmail Data Pipeline | SQLite
             </p>
           </div>
-        </div>
-
-        {/* Center Search / Status Pill */}
-        <div className="hidden md:flex items-center gap-2 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 w-64 lg:w-80">
-          <Search className="w-4 h-4 text-slate-400" />
-          <span>Search PNR, train name, station...</span>
-          <kbd className="ml-auto px-1.5 py-0.5 text-[10px] font-semibold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded">
-            Cmd + K
-          </kbd>
         </div>
 
         {/* Right Actions */}

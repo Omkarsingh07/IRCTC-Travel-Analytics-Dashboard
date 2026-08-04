@@ -20,13 +20,13 @@ export function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center space-y-4">
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col items-center justify-center space-y-4">
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-2xl">
           <Train className="w-6 h-6 text-white animate-pulse" />
         </div>
         <div className="text-center space-y-1">
-          <h2 className="text-xl font-bold text-white">IRCTC Travel Analytics</h2>
-          <p className="text-xs text-slate-400">Loading database insights and synchronization pipeline...</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">IRCTC Travel Analytics</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Loading database insights and synchronization pipeline...</p>
         </div>
       </div>
     );
